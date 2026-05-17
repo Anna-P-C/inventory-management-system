@@ -4,7 +4,7 @@ class Router
 {
     private array $routes = [];
 
-    public function add(string $route, callable $action): void
+   public function add(string $route, $action): void
     {
         $this->routes[$route] = $action;
     }
@@ -13,13 +13,35 @@ class Router
     {
         if (array_key_exists($uri, $this->routes)) {
 
-            $this->routes[$uri]();
+         $callback = $this->routes[$uri];
 
-            return;
+           if (is_string($callback)) {
+               
+                list($controllerName, $method) = explode('@', $callback);
+
+            
+                if (class_exists($controllerName)) {
+                    $controller = new $controllerName();
+                    
+                    if (method_exists($controller, $method)) {
+                        $controller->$method();
+                        return;
+                    }
+                }
+                
+                http_response_code(500);
+                echo "500 - Controller or Method not found";
+                return;
+            }
+
+           
+            if (is_callable($callback)) {
+                $callback();
+                return;
+            }
         }
 
         http_response_code(404);
-
         echo "404 - Page not found";
     }
 }
